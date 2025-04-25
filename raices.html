@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cálculo de Raíz Cuadrada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .grid-paper {
+            background-image: linear-gradient(#ddd 1px, transparent 1px),
+                              linear-gradient(90deg, #ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            min-height: 400px;
+            position: relative;
+        }
+
+        #process {
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            line-height: 1.5;
+            color: #000;
+            padding: 20px;
+            white-space: pre;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 16px;
+            width: 150px;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px 15px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .navigation {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .explanation {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #4CAF50;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #step-counter {
+            font-size: 16px;
+            margin: 10px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="input-container">
+        <input type="number" id="number" placeholder="Ingrese un número">
+        <button onclick="startCalculation()">Iniciar Cálculo</button>
+    </div>
+    <div id="step-counter"></div>
+    <div class="explanation" id="explanation"></div>
+    <div class="grid-paper">
+        <div id="process"></div>
+    </div>
+    <div class="navigation">
+        <button onclick="previousStep()" id="prevBtn" class="disabled">Paso Anterior</button>
+        <button onclick="nextStep()" id="nextBtn" class="disabled">Siguiente Paso</button>
+        <button onclick="restartCalculation()" id="restartBtn" class="disabled">Reiniciar</button>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        let processSteps = [];
+        let calculationResult = '';
+        let pairs = [];
+
+        function formatNumber(num, length) {
+            return num.toString().padStart(length, ' ');
+        }
+
+        function startCalculation() {
+            const num = parseInt(document.getElementById('number').value);
+            if (!num || num < 0) {
+                alert('Por favor ingrese un número válido positivo');
+                return;
+            }
+
+            // Reiniciar variables
+            currentStep = 0;
+            processSteps = [];
+            calculationResult = '';
+            pairs = [];
+
+            // Preparar el número para incluir decimales
+            let numStr = num.toString() + "0000";
+
+            // Separar en pares desde la derecha
+            for (let i = numStr.length - 1; i >= 0; i -= 2) {
+                pairs.unshift(numStr.slice(Math.max(0, i - 1), i + 1).padStart(2, '0'));
+            }
+
+            processSteps.push({
+                content: `√${pairs.join('|')}\n`,
+                explanation: `Separamos el número ${num} en pares de derecha a izquierda: ${pairs.join('|')}`
+            });
+
+            let result = '';
+            let currentNumber = parseInt(pairs[0]);
+            let previousResult = 0;
+            let remainder = 0;
+            let decimalPoint = Math.ceil(numStr.length / 2) - 2; // Ajuste para decimales
+            let maxIterations = pairs.length; // Permitir suficientes iteraciones para decimales
+
+            for (let i = 0; i < maxIterations; i++) {
+                if (i > 0) {
+                    currentNumber = remainder * 100 + parseInt(pairs[i]);
+                }
+
+                let nextDigit = 0;
+                let double = previousResult * 20;
+
+                // Encontrar el siguiente dígito
+                for (let d = 9; d >= 0; d--) {
+                    if ((double + d) * d <= currentNumber) {
+                        nextDigit = d;
+                        break;
+                    }
+                }
+
+                let subtraction = (double + nextDigit) * nextDigit;
+                remainder = currentNumber - subtraction;
+
+                let stepContent = processSteps[processSteps.length - 1].content;
+                let explanation = '';
+
+                if (i === 0) {
+                    explanation = `Buscamos el mayor número que al cuadrado sea menor o igual que ${currentNumber}. ${nextDigit}² = ${subtraction}`;
+                } else {
+                    explanation = `Multiplicamos el doble de lo que llevamos (${double}) más el siguiente dígito (${nextDigit}) por ${nextDigit}: (${double + nextDigit} × ${nextDigit} = ${subtraction})`;
+                }
+
+                stepContent += `${' '.repeat(i * 2)}-${formatNumber(subtraction, currentNumber.toString().length)}     ${i === 0 ? `${nextDigit}x${nextDigit}` : `${double + nextDigit}x${nextDigit}`}\n`;
+
+                processSteps.push({
+                    content: stepContent,
+                    explanation: explanation
+                });
+
+                stepContent += `${' '.repeat(i * 2)}${'─'.repeat(currentNumber.toString().length)}\n`;
+
+                processSteps.push({
+                    content: stepContent,
+                    explanation: "Restamos y trazamos una línea"
+                });
+
+                if (i < maxIterations - 1) {
+                    stepContent += `${' '.repeat(i * 2)}${formatNumber(remainder, currentNumber.toString().length)}${pairs[i + 1]}\n`;
+                    processSteps.push({
+                        content: stepContent,
+                        explanation: `Bajamos el siguiente par de números: ${pairs[i + 1]}`
+                    });
+                } else {
+                    stepContent += `${remainder}\n`;
+                    processSteps.push({
+                        content: stepContent,
+                        explanation: "Este es nuestro residuo final"
+                    });
+                }
+
+                result += nextDigit;
+                if (result.length === decimalPoint) {
+                    result += '.';
+                }
+
+                previousResult = parseInt(result.replace('.', ''));
+
+                // Detener después de obtener 2 decimales
+                if (result.includes('.') && result.split('.')[1].length >= 2) {
+                    break;
+                }
+            }
+
+            calculationResult = result;
+
+            // Habilitar botones de navegación
+            document.getElementById('nextBtn').classList.remove('disabled');
+            document.getElementById('restartBtn').classList.remove('disabled');
+            document.getElementById('prevBtn').classList.add('disabled');
+
+            showStep(0);
+        }
+
+        function showStep(step) {
+            if (step >= 0 && step < processSteps.length) {
+                document.getElementById('process').innerHTML = processSteps[step].content;
+                document.getElementById('explanation').innerHTML = processSteps[step].explanation;
+                document.getElementById('step-counter').innerHTML = `Paso ${step + 1} de ${processSteps.length}`;
+
+                document.getElementById('prevBtn').classList.toggle('disabled', step === 0);
+                document.getElementById('nextBtn').classList.toggle('disabled', step === processSteps.length - 1);
+
+                if (step === processSteps.length - 1) {
+                    document.getElementById('explanation').innerHTML += `<br><br>Resultado final: ${calculationResult}`;
+                }
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < processSteps.length - 1) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+
+        function restartCalculation() {
+            currentStep = 0;
+            showStep(currentStep);
+        }
+    </script>
+</body>
+</html>10
